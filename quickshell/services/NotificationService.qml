@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Services.Notifications
+import Quickshell.Hyprland
 
 Singleton {
     id: root
@@ -30,31 +31,139 @@ Singleton {
         "chromium": "chrome-",
     })
 
+    readonly property var browserGenericClasses: ({
+        "brave-": ["brave-browser"],
+        "chrome-": ["chrome", "chromium", "google-chrome", "google-chrome-stable"],
+        "firefox-": ["firefox"],
+        "vivaldi-": ["vivaldi", "vivaldi-stable"],
+        "edge-": ["microsoft-edge", "microsoft-edge-stable"]
+    })
+
+    function isGenericBrowserClass(prefix, cls) {
+        const generic = browserGenericClasses[prefix] || [];
+        const lower = String(cls || "").toLowerCase();
+        for (let i = 0; i < generic.length; i++) {
+            if (lower === generic[i]) return true;
+        }
+        return false;
+    }
+
+    function browserPrefixForAppName(appName) {
+        const exact = browserNames[appName];
+        if (exact) return exact;
+
+        const lower = String(appName || "").toLowerCase();
+        if (lower.indexOf("brave") !== -1) return "brave-";
+        if (lower.indexOf("chrome") !== -1 || lower.indexOf("chromium") !== -1) return "chrome-";
+        if (lower.indexOf("firefox") !== -1) return "firefox-";
+        if (lower.indexOf("vivaldi") !== -1) return "vivaldi-";
+        if (lower.indexOf("edge") !== -1) return "edge-";
+        return "";
+    }
+
+    function findBrowserWindowClass(appName, desktopEntry, title) {
+        const browserPrefix = browserPrefixForAppName(`${appName} ${desktopEntry}`);
+        if (!browserPrefix) return "";
+
+        const prefix = browserPrefix.toLowerCase();
+        const toplevels = [];
+
+        const workspaces = Hyprland.workspaces.values;
+        for (let w = 0; w < workspaces.length; w++) {
+            const tls = workspaces[w].toplevels.values;
+            for (let t = 0; t < tls.length; t++) {
+                const keys = [tls[t].lastIpcObject?.class, tls[t].lastIpcObject?.initialClass, tls[t].wayland?.appId].filter(k => !!k);
+                let cls = "";
+                for (let k = 0; k < keys.length; k++) {
+                    const key = String(keys[k]);
+                    if (key.toLowerCase().startsWith(prefix)) {
+                        cls = key;
+                        break;
+                    }
+                }
+
+                if (cls.length > 0) {
+                    toplevels.push({
+                        cls: cls,
+                        title: String(tls[t].lastIpcObject?.title || "").toLowerCase(),
+                        generic: isGenericBrowserClass(prefix, cls)
+                    });
+                }
+            }
+        }
+
+        if (toplevels.length === 0) return "";
+        if (toplevels.length === 1) return toplevels[0].cls;
+
+        if (CompositorService.activeWindowClass.toLowerCase().startsWith(prefix)
+                && !isGenericBrowserClass(prefix, CompositorService.activeWindowClass)) {
+            return CompositorService.activeWindowClass;
+        }
+
+        if (title && title.length > 0) {
+            const tl = title.toLowerCase();
+            for (let i = 0; i < toplevels.length; i++) {
+                if (!toplevels[i].generic && toplevels[i].title.length > 0 && tl.indexOf(toplevels[i].title) !== -1) {
+                    return toplevels[i].cls;
+                }
+            }
+            for (let i = 0; i < toplevels.length; i++) {
+                if (!toplevels[i].generic && toplevels[i].title.length > 0 && toplevels[i].title.indexOf(tl) !== -1) {
+                    return toplevels[i].cls;
+                }
+            }
+        }
+
+        for (let i = 0; i < toplevels.length; i++) {
+            if (!toplevels[i].generic) {
+                return toplevels[i].cls;
+            }
+        }
+
+        if (CompositorService.activeWindowClass.toLowerCase().startsWith(prefix)) {
+            return CompositorService.activeWindowClass;
+        }
+
+        return toplevels[0].cls;
+    }
+
+    function isTempPath(path) {
+        return path.indexOf("/tmp/") !== -1;
+    }
+
     function snapshotOf(notification) {
-        let icon = String(notification.appIcon || "");
         const appName = String(notification.appName || "");
         const desktopEntry = String(notification.desktopEntry || "");
         const image = String(notification.image || "");
-        let windowClass = "";
+        const appIcon = String(notification.appIcon || "");
+        const summary = String(notification.summary || "");
+        let windowClass = findBrowserWindowClass(appName, desktopEntry, summary);
+        let icon = "";
 
-        const browserPrefix = browserNames[appName];
+        const isBrowser = browserPrefixForAppName(`${appName} ${desktopEntry}`).length > 0;
+        const hasImage = image.length > 0;
+        const hasAppIcon = appIcon.length > 0 && !isTempPath(appIcon);
 
-        if (browserPrefix && CompositorService.activeWindowClass.toLowerCase().startsWith(browserPrefix)) {
-            windowClass = CompositorService.activeWindowClass;
-        }
-
-        if (windowClass.length > 0) {
-            if (icon.length === 0) {
+        if (isBrowser) {
+            if (windowClass.length > 0) {
                 const entry = CompositorService.getDesktopEntry(windowClass);
                 if (entry) {
                     const resolved = CompositorService.getDesktopIcon(entry);
-                    if (resolved.indexOf("application-x-executable") === -1) {
+                    if (resolved.length > 0) {
                         icon = resolved;
                     }
                 }
             }
-        } else if (icon.length === 0) {
-            if (desktopEntry.length > 0) {
+            if (icon.length === 0 && hasImage) {
+                icon = image;
+            }
+            if (icon.length === 0 && hasAppIcon) {
+                icon = appIcon;
+            }
+        } else {
+            if (hasAppIcon) {
+                icon = appIcon;
+            } else if (desktopEntry.length > 0) {
                 const entry = CompositorService.getDesktopEntry(desktopEntry);
                 if (entry) {
                     icon = CompositorService.getDesktopIcon(entry);
@@ -65,6 +174,9 @@ Singleton {
                 if (entry) {
                     icon = CompositorService.getDesktopIcon(entry);
                 }
+            }
+            if (icon.length === 0 && hasImage) {
+                icon = image;
             }
         }
 
@@ -191,20 +303,23 @@ Singleton {
         }
         closeLiveNotification(id);
         removeToastById(id);
+        removeHistoryById(id);
     }
 
     function focusAndDismiss(id, appName, windowClass) {
-        const target = (windowClass && windowClass.length > 0) ? windowClass : appName;
-        if (target && target.length > 0) {
-            CompositorService.focusWindowByAppName(target);
+        if (windowClass && windowClass.length > 0) {
+            CompositorService.focusWindowByClass(windowClass);
+        } else if (appName && appName.length > 0) {
+            CompositorService.focusWindowByAppName(appName);
         }
         invokeDefault(id);
     }
 
     function focusFromHistory(appName, index, windowClass) {
-        const target = (windowClass && windowClass.length > 0) ? windowClass : appName;
-        if (target && target.length > 0) {
-            CompositorService.focusWindowByAppName(target);
+        if (windowClass && windowClass.length > 0) {
+            CompositorService.focusWindowByClass(windowClass);
+        } else if (appName && appName.length > 0) {
+            CompositorService.focusWindowByAppName(appName);
         }
         if (index !== undefined && index !== null) {
             dismissHistory(index);
@@ -215,6 +330,14 @@ Singleton {
         for (let i = toastModel.count - 1; i >= 0; i--) {
             if (toastModel.get(i).notificationId === id) {
                 toastModel.remove(i);
+            }
+        }
+    }
+
+    function removeHistoryById(id) {
+        for (let i = historyModel.count - 1; i >= 0; i--) {
+            if (historyModel.get(i).notificationId === id) {
+                historyModel.remove(i);
             }
         }
     }

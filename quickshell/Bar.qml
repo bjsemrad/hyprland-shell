@@ -87,6 +87,10 @@ Scope {
                 implicitWidth: available
                 children: [
                     BarFill {},
+                    MediaIndicator {
+                        id: mediaIndicator
+                        popup: mediaPanel
+                    },
                     ClickableClock {
                         id: clock
                         popup: calendarPanel
@@ -143,6 +147,11 @@ Scope {
             WeatherPanel {
                 id: weatherPanel
                 trigger: weather
+            }
+
+            MediaPanel {
+                id: mediaPanel
+                trigger: mediaIndicator
             }
         }
     }

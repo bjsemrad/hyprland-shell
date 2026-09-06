@@ -23,7 +23,8 @@ Rectangle {
 
     readonly property string iconSource: {
         if (appIcon.length > 0) {
-            if (appIcon.startsWith("/") || appIcon.startsWith("file:")) return appIcon.startsWith("file:") ? appIcon : "file://" + appIcon;
+            if (appIcon.startsWith("/") && !appIcon.startsWith("file:")) return "file://" + appIcon;
+            if (appIcon.startsWith("file:") || appIcon.startsWith("http") || appIcon.startsWith("data:") || appIcon.startsWith("image:")) return appIcon;
             return Quickshell.iconPath(appIcon, "");
         }
         if (image.length > 0) return image;

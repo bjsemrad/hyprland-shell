@@ -61,6 +61,28 @@ Singleton {
         }
     }
 
+    function escapeRegex(value) {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function focusWindowByClass(windowClass) {
+        if (!windowClass || windowClass.length === 0) return;
+
+        console.log("CompositorService: focusWindowByClass called with:", windowClass);
+
+        if (isHyprland) {
+            Hyprland.dispatch(`hl.dsp.focus({ window = "class:(?i)^${escapeRegex(windowClass)}$" })`);
+        } else if (isNiri) {
+            const windows = NiriService.windows;
+            for (let i = 0; i < windows.length; i++) {
+                if (windows[i].appId && windows[i].appId.toLowerCase() === windowClass.toLowerCase()) {
+                    Quickshell.execDetached(["niri", "msg", "action", "focus-window", "--id", windows[i].id.toString()]);
+                    return;
+                }
+            }
+        }
+    }
+
     function logout() {
         //TODO
     }
@@ -103,10 +125,10 @@ Singleton {
             }
 
             const p = Quickshell.iconPath(icon, "");
-            if (p && p.length > 0)
+            if (p && p.length > 0 && p.indexOf("application-x-executable") === -1)
                 return p;
         }
 
-        return Quickshell.iconPath("application-x-executable", "application-x-executable");
+        return "";
     }
 }

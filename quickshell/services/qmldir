@@ -8,4 +8,5 @@ singleton SystemTray 1.0 SystemTray.qml
 singleton NiriService 1.0 NiriService.qml
 singleton CompositorService 1.0 CompositorService.qml
 singleton Notifications 1.0 NotificationService.qml
+singleton LauncherService 1.0 LauncherService.qml
 #singleton NixService 1.0 NixService.qml

@@ -1,5 +1,4 @@
-import Quickshell
-import Quickshell.Io
+import QtQuick
 import qs.commonwidgets
 
 BarIcon {
@@ -7,12 +6,11 @@ BarIcon {
     mouseEnabled: true
     iconText: "󰀻"
 
-    Process {
-        id: walker
-        command: ["walker"]
+    function performLeftClickAction() {
+        launcherOverlay.toggle();
     }
 
-    function performLeftClickAction() {
-        walker.running = true;
+    LauncherOverlay {
+        id: launcherOverlay
     }
 }
