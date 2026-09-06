@@ -72,14 +72,50 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
 
                 property bool needsScroll: implicitWidth > titleClip.width
+                property bool scrolling: false
+                readonly property int scrollInterval: 60000
 
-                NumberAnimation on x {
-                    running: titleText.needsScroll && !(popup && popup.open)
-                    loops: Animation.Infinite
+                function startScroll() {
+                    if (scrolling) return;
+                    if (!needsScroll || !root.active || (root.popup && root.popup.open)) return;
+                    x = 0;
+                    scrolling = true;
+                    scrollAnim.start();
+                }
+
+                function stopScroll() {
+                    if (!scrolling) return;
+                    scrolling = false;
+                    scrollAnim.stop();
+                    x = 0;
+                }
+
+                Timer {
+                    id: scrollTimer
+                    interval: titleText.scrollInterval
+                    repeat: true
+                    running: titleText.needsScroll && root.active && !(root.popup && root.popup.open)
+                    onRunningChanged: {
+                        if (running) titleText.startScroll();
+                        else titleText.stopScroll();
+                    }
+                    onTriggered: titleText.startScroll()
+                }
+
+                NumberAnimation {
+                    id: scrollAnim
+                    target: titleText
+                    property: "x"
                     duration: Math.max(6000, titleText.implicitWidth * 25)
                     from: titleClip.width
                     to: -titleText.implicitWidth
                     easing.type: Easing.Linear
+                    onRunningChanged: {
+                        if (!running && titleText.scrolling) {
+                            titleText.scrolling = false;
+                            titleText.x = 0;
+                        }
+                    }
                 }
             }
         }

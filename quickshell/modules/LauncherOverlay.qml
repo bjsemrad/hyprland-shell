@@ -27,6 +27,45 @@ PanelWindow {
         id: providerModel
     }
 
+    readonly property var providerDefs: ({
+        "desktopapplications": { shortcut: "",    label: "Applications", subtext: "Search installed applications" },
+        "files":               { shortcut: "/",   label: "Files",        subtext: "Search and preview files" },
+        "clipboard":           { shortcut: ":",   label: "Clipboard",    subtext: "Browse clipboard history" },
+        "windows":             { shortcut: "!",   label: "Windows",      subtext: "Jump to open windows" },
+        "calc":                { shortcut: "=",   label: "Calculator",   subtext: "Evaluate math expressions" },
+        "bitwarden":           { shortcut: "@",   label: "Bitwarden",    subtext: "Search password vault" }
+    })
+
+    function buildProviderMenu() {
+        providerModel.clear();
+        for (const p of S.LauncherService.availableProviders) {
+            const d = root.providerDefs[p];
+            if (!d) continue;
+            providerModel.append({
+                provider: "provider",
+                identifier: d.shortcut,
+                shortcut: d.shortcut,
+                text: d.label,
+                subtext: d.subtext,
+                icon: "",
+                action: "",
+                preview: "",
+                previewType: ""
+            });
+        }
+        providerModel.append({
+            provider: "provider",
+            identifier: "*",
+            shortcut: "*",
+            text: "All providers",
+            subtext: "Search across every provider",
+            icon: "",
+            action: "",
+            preview: "",
+            previewType: ""
+        });
+    }
+
     visible: _visible
 
     signal selected()
@@ -81,7 +120,8 @@ PanelWindow {
 
     function chooseProvider(prefix) {
         showingProviders = false;
-        inputField.text = prefix === "default" ? "" : prefix;
+        if (prefix === "default") prefix = "";
+        inputField.text = prefix;
         inputField.forceActiveFocus();
         S.LauncherService.setQuery(inputField.text);
     }
@@ -418,6 +458,7 @@ PanelWindow {
                         required property string action
                         required property string preview
                         required property string previewType
+                        property string shortcut: ""
 
                         readonly property bool isCurrent: root.currentIndex === index
                         width: listView.width - 2
@@ -459,7 +500,8 @@ PanelWindow {
                                 Text {
                                     anchors.centerIn: parent
                                     visible: !(delegateRoot.provider !== "provider" && delegateRoot.icon.length > 0 && iconImage.status === Image.Ready)
-                                    text: delegateRoot.provider === "provider" ? delegateRoot.identifier
+                                    text: delegateRoot.provider === "provider"
+                                        ? (delegateRoot.shortcut || (delegateRoot.identifier.length > 0 ? delegateRoot.identifier.charAt(0) : "A"))
                                         : (delegateRoot.text.length > 0 ? delegateRoot.text.charAt(0).toUpperCase() : "?")
                                     color: T.Config.inactive
                                     font.family: T.Config.fontFamily
@@ -492,7 +534,27 @@ PanelWindow {
                                 }
                             }
 
+                            Rectangle {
+                                visible: delegateRoot.provider === "provider"
+                                Layout.preferredWidth: kbdText.implicitWidth + 14
+                                Layout.preferredHeight: 18
+                                radius: 4
+                                color: T.Config.surface
+                                border.width: 1
+                                border.color: T.Config.surfaceVariant
+
+                                Text {
+                                    id: kbdText
+                                    anchors.centerIn: parent
+                                    text: delegateRoot.shortcut || "type"
+                                    color: T.Config.inactive
+                                    font.family: T.Config.fontFamily
+                                    font.pixelSize: T.Config.fontSizeSubtext
+                                }
+                            }
+
                             Text {
+                                visible: delegateRoot.provider !== "provider"
                                 text: root.providerLabel(delegateRoot.provider, delegateRoot.identifier)
                                 color: T.Config.inactive
                                 font.family: T.Config.fontFamily
@@ -560,7 +622,7 @@ PanelWindow {
                     delegate: Text {
                         required property string identifier
 
-                        text: identifier === "default" ? "Apps" : identifier
+                        text: (identifier === "default" || identifier === "") ? "Apps" : identifier
                         color: root.chipActive(identifier) ? T.Config.accent : T.Config.inactive
                         font.family: T.Config.fontFamily
                         font.pixelSize: T.Config.fontSizeSubtext
@@ -714,13 +776,12 @@ PanelWindow {
         listView.positionViewAtIndex(currentIndex, ListView.Center);
     }
 
+    Connections {
+        target: S.LauncherService
+        function onProvidersUpdated() { root.buildProviderMenu() }
+    }
+
     Component.onCompleted: {
-        providerModel.append({ provider: "provider", identifier: "default", text: "Applications",  subtext: "search applications (default)", icon: "", action: "" });
-        providerModel.append({ provider: "provider", identifier: "/",       text: "Files",       subtext: "search files",                 icon: "", action: "" });
-        providerModel.append({ provider: "provider", identifier: ":",       text: "Clipboard",   subtext: "search clipboard history",     icon: "", action: "" });
-        providerModel.append({ provider: "provider", identifier: "!",       text: "Windows",     subtext: "search windows",               icon: "", action: "" });
-        providerModel.append({ provider: "provider", identifier: "=",       text: "Calculator",  subtext: "calculate",                    icon: "", action: "" });
-        providerModel.append({ provider: "provider", identifier: "@",       text: "Bitwarden",   subtext: "search vault",                 icon: "", action: "" });
-        providerModel.append({ provider: "provider", identifier: "*",       text: "All providers", subtext: "search everything",          icon: "", action: "" });
+        root.buildProviderMenu()
     }
 }

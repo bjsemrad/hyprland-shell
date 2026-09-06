@@ -13,9 +13,14 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    elephant = {
+      url = "github:abenz1267/elephant/v2.21.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, quickshell, home-manager, ... }:
+  outputs = { self, nixpkgs, quickshell, home-manager, elephant, ... }:
     let
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f {
@@ -37,6 +42,7 @@
       in {
         quickshell = qs;
         epochshell = epochshell;
+        elephant = elephant.packages.${system}.elephant-with-providers;
         default = epochshell;
       });
 
@@ -69,6 +75,8 @@
         '';
       in
       {
+        imports = [ elephant.homeManagerModules.default ];
+
         options.programs.epochshell = {
           enable = lib.mkEnableOption "EpochShell (runs Quickshell)";
 
@@ -83,6 +91,18 @@
             default = true;
             description = "Start EpochShell (quickshell) via systemd --user.";
           };
+
+          elephant = lib.mkOption {
+            type = lib.types.submodule {
+              options.enable = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Install and start the elephant launcher backend (systemd user service).";
+              };
+            };
+            default = {};
+            description = "Elephant backend for EpochShell. Fine-tune it via programs.elephant.* after this module is imported.";
+          };
         };
 
         config = lib.mkIf cfg.enable {
@@ -91,6 +111,9 @@
 
           # Install repo config into ~/.config/${cfg.configDir}
           xdg.configFile."${cfg.configDir}".source = "${self}/quickshell";
+
+          # Elephant backend (launcher data providers) + its systemd user service
+          programs.elephant.enable = lib.mkDefault cfg.elephant.enable;
 
           # Autostart uses the HM wrapper so -c is guaranteed
           systemd.user.services.epochshell = lib.mkIf cfg.autostart {

@@ -30,6 +30,7 @@ Singleton {
     property bool _silentRefresh: false
 
     signal queryFailed(string message)
+    signal providersUpdated()
 
     ListModel {
         id: resultModel
@@ -129,6 +130,7 @@ Singleton {
                     const lines = providersOut.text.trim().split("\n").filter(l => l.length > 0);
                     root.available = true;
                     root.availableProviders = lines;
+                    root.providersUpdated();
                 } catch (e) {
                     console.log("launcher listproviders error:", e);
                     root.available = false;
