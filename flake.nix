@@ -94,14 +94,52 @@
 
           elephant = lib.mkOption {
             type = lib.types.submodule {
-              options.enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Install and start the elephant launcher backend (systemd user service).";
+              options = {
+                enable = lib.mkOption {
+                  type = lib.types.bool;
+                  default = true;
+                  description = "Install and start the elephant launcher backend (systemd user service).";
+                };
+
+                installService = lib.mkOption {
+                  type = lib.types.bool;
+                  default = true;
+                  description = "Create a systemd user service for elephant.";
+                };
+
+                debug = lib.mkOption {
+                  type = lib.types.bool;
+                  default = false;
+                  description = "Enable debug logging for the elephant service.";
+                };
+
+                settings = lib.mkOption {
+                  type = (pkgs.formats.toml {}).type;
+                  default = {};
+                  description = "elephant.toml settings. Run `elephant generatedoc` to view available options.";
+                };
+
+                providers = lib.mkOption {
+                  type = lib.types.listOf lib.types.str;
+                  default = [];
+                  description = "List of built-in providers to install. Defaults to elephant's built-in set when empty.";
+                };
+
+                provider = lib.mkOption {
+                  type = lib.types.attrsOf (lib.types.submodule {
+                    options.settings = lib.mkOption {
+                      type = (pkgs.formats.toml {}).type;
+                      default = {};
+                      description = "Provider-specific TOML settings.";
+                    };
+                  });
+                  default = {};
+                  description = "Per-provider settings forwarded to XDG config.";
+                };
               };
             };
             default = {};
-            description = "Elephant backend for EpochShell. Fine-tune it via programs.elephant.* after this module is imported.";
+            description = "Elephant launcher backend shipped with EpochShell.";
           };
         };
 
@@ -114,6 +152,11 @@
 
           # Elephant backend (launcher data providers) + its systemd user service
           programs.elephant.enable = lib.mkDefault cfg.elephant.enable;
+          programs.elephant.debug = lib.mkDefault cfg.elephant.debug;
+          programs.elephant.settings = lib.mkIf (cfg.elephant.settings != {}) cfg.elephant.settings;
+          programs.elephant.providers = lib.mkIf (cfg.elephant.providers != []) cfg.elephant.providers;
+          programs.elephant.provider = lib.mkIf (cfg.elephant.provider != {}) cfg.elephant.provider;
+          programs.elephant.installService = lib.mkDefault cfg.elephant.installService;
 
           # Autostart uses the HM wrapper so -c is guaranteed
           systemd.user.services.epochshell = lib.mkIf cfg.autostart {
