@@ -61,6 +61,10 @@ Singleton {
         return "";
     }
 
+    function normalizeClass(cls) {
+        return String(cls || "").replace(/__-?Default$/, "");
+    }
+
     function findBrowserWindowClass(appName, desktopEntry, title) {
         const browserPrefix = browserPrefixForAppName(`${appName} ${desktopEntry}`);
         if (!browserPrefix) return "";
@@ -77,7 +81,7 @@ Singleton {
                 for (let k = 0; k < keys.length; k++) {
                     const key = String(keys[k]);
                     if (key.toLowerCase().startsWith(prefix)) {
-                        cls = key;
+                        cls = normalizeClass(key);
                         break;
                     }
                 }
@@ -95,23 +99,36 @@ Singleton {
         if (toplevels.length === 0) return "";
         if (toplevels.length === 1) return toplevels[0].cls;
 
-        if (CompositorService.activeWindowClass.toLowerCase().startsWith(prefix)
-                && !isGenericBrowserClass(prefix, CompositorService.activeWindowClass)) {
-            return CompositorService.activeWindowClass;
+        const tl = String(title || "").toLowerCase();
+        const tokens = String(appName || "")
+            .toLowerCase()
+            .replace(/[^a-z0-9 ]+/g, " ")
+            .split(/\s+/)
+            .filter(t => t.length >= 3);
+
+        let best = toplevels[0];
+        let bestScore = -Infinity;
+        for (let i = 0; i < toplevels.length; i++) {
+            const t = toplevels[i];
+            let score = t.generic ? -100 : 0;
+            for (let n = 0; n < tokens.length; n++) {
+                if (t.cls.toLowerCase().indexOf(tokens[n]) !== -1) score += 30;
+            }
+            if (tl.length >= 3) {
+                if (tl.indexOf(t.title) !== -1 && t.title.length >= 5) score += 15;
+                if (t.title.indexOf(tl) !== -1) score += 20;
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                best = t;
+            }
         }
 
-        if (title && title.length > 0) {
-            const tl = title.toLowerCase();
-            for (let i = 0; i < toplevels.length; i++) {
-                if (!toplevels[i].generic && toplevels[i].title.length > 0 && tl.indexOf(toplevels[i].title) !== -1) {
-                    return toplevels[i].cls;
-                }
-            }
-            for (let i = 0; i < toplevels.length; i++) {
-                if (!toplevels[i].generic && toplevels[i].title.length > 0 && toplevels[i].title.indexOf(tl) !== -1) {
-                    return toplevels[i].cls;
-                }
-            }
+        if (bestScore > -50) return best.cls;
+
+        if (CompositorService.activeWindowClass.toLowerCase().startsWith(prefix)
+                && !isGenericBrowserClass(prefix, CompositorService.activeWindowClass)) {
+            return normalizeClass(CompositorService.activeWindowClass);
         }
 
         for (let i = 0; i < toplevels.length; i++) {
@@ -121,7 +138,7 @@ Singleton {
         }
 
         if (CompositorService.activeWindowClass.toLowerCase().startsWith(prefix)) {
-            return CompositorService.activeWindowClass;
+            return normalizeClass(CompositorService.activeWindowClass);
         }
 
         return toplevels[0].cls;
@@ -139,6 +156,12 @@ Singleton {
         const summary = String(notification.summary || "");
         let windowClass = findBrowserWindowClass(appName, desktopEntry, summary);
         let icon = "";
+
+        console.log("[notif] appName=" + JSON.stringify(appName) +
+            " desktopEntry=" + JSON.stringify(desktopEntry) +
+            " appIcon=" + JSON.stringify(appIcon) +
+            " image=" + JSON.stringify(image) +
+            " windowClass=" + JSON.stringify(windowClass));
 
         const isBrowser = browserPrefixForAppName(`${appName} ${desktopEntry}`).length > 0;
         const hasImage = image.length > 0;

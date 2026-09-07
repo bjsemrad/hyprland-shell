@@ -71,7 +71,8 @@ Singleton {
         console.log("CompositorService: focusWindowByClass called with:", windowClass);
 
         if (isHyprland) {
-            Hyprland.dispatch(`hl.dsp.focus({ window = "class:(?i)^${escapeRegex(windowClass)}$" })`);
+            const luaSafe = escapeRegex(windowClass).replace(/\\/g, "\\\\");
+            Hyprland.dispatch('hl.dsp.focus({ window = "class:(?i)^' + luaSafe + '(?:__-?Default)?$" })');
         } else if (isNiri) {
             const windows = NiriService.windows;
             for (let i = 0; i < windows.length; i++) {
@@ -113,7 +114,43 @@ Singleton {
                 }
             }
         }
+
+        if (!entry) entry = findWebappEntry(app);
         return entry;
+    }
+
+    function findWebappEntry(app) {
+        const clean = String(app || "")
+            .toLowerCase()
+            .replace(/^brave-/, "")
+            .replace(/^chrome-/, "")
+            .replace(/^chromium-/, "")
+            .replace(/^firefox-/, "")
+            .replace(/^vivaldi-/, "")
+            .replace(/^edge-/, "")
+            .replace(/__-?Default$/, "")
+            .replace(/\.desktop$/, "")
+            .replace(/-Default$/, "");
+        const tokens = clean.split(/[\-.]+/).filter(t => t.length >= 3);
+        if (tokens.length === 0) return null;
+
+        let best = null;
+        let bestScore = 0;
+        for (let i = 0; i < DesktopEntries.applications.values.length; i++) {
+            const e = DesktopEntries.applications.values[i];
+            const fields = [String(e.name || ""), String(e.id || ""), String(e.startupClass || "")].join(" ").toLowerCase();
+            if (fields.length === 0) continue;
+            let score = 0;
+            for (let t = 0; t < tokens.length; t++) {
+                if (fields.indexOf(tokens[t]) !== -1) score += 1;
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                best = e;
+            }
+        }
+
+        return bestScore >= 2 ? best : null;
     }
 
     function getDesktopIcon(entry) {
