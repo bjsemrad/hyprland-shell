@@ -13,4 +13,5 @@ ShellRoot {
     SoundOSD {}
     MediaOSD {}
     BrightnessOSD {}
+    Polkit {}
 }
