@@ -67,8 +67,6 @@ PanelWindow {
 
     visible: _visible
 
-    signal selected()
-
     function open() {
         panelAnimate = false;
         inputField.text = "";
@@ -135,7 +133,6 @@ PanelWindow {
             return;
         }
         S.LauncherService.activate(delegate.provider, delegate.identifier, delegate.action);
-        selected();
         close();
     }
 

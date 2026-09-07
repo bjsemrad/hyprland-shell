@@ -10,7 +10,6 @@ Singleton {
     property alias results: resultModel
 
     readonly property string defaultProviders: "desktopapplications,windows,clipboard,calc,files"
-    property string activeProviders: defaultProviders
     readonly property var providersByPrefix: ({
         "/": "files",
         ":": "clipboard",
@@ -18,7 +17,6 @@ Singleton {
         "=": "calc",
         "*": defaultProviders
     })
-    property bool available
     property bool searching: false
     property var availableProviders: []
 
@@ -28,7 +26,6 @@ Singleton {
     property var _defaultAppsCache: []
     property bool _silentRefresh: false
 
-    signal queryFailed(string message)
     signal providersUpdated()
 
     ListModel {
@@ -142,12 +139,10 @@ Singleton {
             onStreamFinished: {
                 try {
                     const lines = providersOut.text.trim().split("\n").filter(l => l.length > 0);
-                    root.available = true;
                     root.availableProviders = lines;
                     root.providersUpdated();
                 } catch (e) {
                     console.log("launcher listproviders error:", e);
-                    root.available = false;
                 }
             }
         }

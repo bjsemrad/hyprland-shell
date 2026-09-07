@@ -9,12 +9,10 @@ import qs.modules.audio
 import qs.modules.battery
 import qs.modules.bluetooth
 import qs.modules.ethernet
-import qs.modules.systemtray
 import qs.modules.tailscale
 import qs.modules.wifi
 import qs.modules.notifications
 import qs.modules.controlcenter
-import qs.modules.nix
 import qs.popups
 import qs.services as S
 import qs.theme as T
@@ -223,7 +221,7 @@ RowLayout {
     }
     SystemOptions {
         id: systemOptions
-        popup: T.Config.popupControlCenter ? systemPanelPopup : systemPanel
+        popup: systemPanelPopup
     }
     BarFill {}
 
@@ -264,10 +262,6 @@ RowLayout {
 
     SystemMenuPanel {
         id: systemPanelPopup
-        trigger: systemOptions
-    }
-    ControlCenterPanel {
-        id: systemPanel
         trigger: systemOptions
     }
 }

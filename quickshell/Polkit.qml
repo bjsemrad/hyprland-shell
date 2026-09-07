@@ -12,11 +12,9 @@ Item {
     property bool closing: false
     property bool submitted: false
     property string currentMessage: ""
-    property string currentPrompt: ""
     property string currentSupplementary: ""
     property bool responseRequired: false
     property bool responseVisible: false
-    property bool failed: false
     property bool errorFlash: false
     // pam_fprintd appears in the polkit PAM stack (a sensor is enrolled).
     property bool fingerprintConfigured: false
@@ -62,11 +60,9 @@ Item {
 
     function resetSnapshot() {
         currentMessage = ""
-        currentPrompt = ""
         currentSupplementary = ""
         responseRequired = false
         responseVisible = false
-        failed = false
         errorFlash = false
         submitted = false
         passwordInput.text = ""
@@ -77,11 +73,9 @@ Item {
         if (!flow) return
 
         currentMessage = String(flow.message || "Authentication is needed...")
-        currentPrompt = String(flow.inputPrompt || "")
         currentSupplementary = String(flow.supplementaryMessage || "")
         responseRequired = !!flow.isResponseRequired
         responseVisible = !!flow.responseVisible
-        failed = !!flow.failed
 
         if (responseRequired) submitted = false
     }
