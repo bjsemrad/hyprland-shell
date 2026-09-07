@@ -237,12 +237,17 @@ Item {
 
         Rectangle {
             id: dialog
+            readonly property real maxWidth: Math.max(240, panel.width - 40)
+            readonly property real passwordWidth: 420
+            readonly property real fingerprintWidth: fpNaturalMeasure.implicitWidth
+                + T.Config.popupPadding * 6
+                + T.Config.popupLayoutSpacing
+                + T.Config.fontSizeXLarge
+            readonly property real messageWidth: msgNaturalMeasure.implicitWidth + T.Config.popupPadding * 4
+
             width: Math.min(
-                root.fingerprintMode
-                    ? Math.max(300, fpLineMeasure.implicitWidth + T.Config.barIconSize
-                                + T.Config.popupPadding * 6 + T.Config.popupLayoutSpacing)
-                    : 420,
-                Math.max(300, panel.width - 40)
+                Math.max(240, root.fingerprintMode ? Math.max(fingerprintWidth, messageWidth) : Math.max(passwordWidth, messageWidth)),
+                maxWidth
             )
             height: Math.min(
                 T.Config.popupPadding * 4
@@ -253,10 +258,8 @@ Item {
                 + T.Config.popupLayoutSpacing * 3,
                 Math.max(panel.height - 60 - 24, 0)
             )
-            anchors.horizontalCenter: parent.horizontalCenter
             anchors.horizontalCenterOffset: root.shakeOffset
-            anchors.top: parent.top
-            anchors.topMargin: 60
+            anchors.centerIn: parent
             radius: T.Config.popupRadius
             color: T.Config.background
             border.width: 1
@@ -281,6 +284,22 @@ Item {
                 acceptedButtons: Qt.AllButtons
             }
 
+            Text {
+                id: msgNaturalMeasure
+                visible: false
+                text: root.authorizationLabel(root.currentMessage)
+                font.family: T.Config.fontFamily
+                font.pixelSize: T.Config.fontSizeLarge
+            }
+
+            Text {
+                id: fpNaturalMeasure
+                visible: false
+                text: "Place your finger on the reader"
+                font.family: T.Config.fontFamily
+                font.pixelSize: T.Config.fontSizeLarge
+            }
+
             Flickable {
                 id: scroller
                 anchors {
@@ -288,8 +307,10 @@ Item {
                     margins: T.Config.popupPadding * 2
                 }
                 clip: true
-                contentWidth: contentCol.width
+                contentWidth: width
                 contentHeight: contentCol.implicitHeight
+                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
 
             Text {
                 id: msgMeasure
@@ -298,8 +319,8 @@ Item {
                 text: root.authorizationLabel(root.currentMessage)
                 color: T.Config.surfaceText
                 font.family: T.Config.fontFamily
-                font.pixelSize: T.Config.fontSizeNormal
-                wrapMode: Text.Wrap
+                font.pixelSize: T.Config.fontSizeLarge
+                wrapMode: Text.WrapAnywhere
             }
 
             ColumnLayout {
@@ -315,17 +336,9 @@ Item {
                     text: root.authorizationLabel(root.currentMessage)
                     color: T.Config.surfaceText
                     font.family: T.Config.fontFamily
-                    font.pixelSize: T.Config.fontSizeNormal
-                    wrapMode: Text.Wrap
-                }
-
-                Text {
-                    id: fpLineMeasure
-                    visible: false
-                    text: "Place your finger on the reader"
-                    color: T.Config.surfaceText
-                    font.family: T.Config.fontFamily
-                    font.pixelSize: T.Config.fontSizeMedium
+                    font.pixelSize: T.Config.fontSizeLarge
+                    wrapMode: Text.WrapAnywhere
+                    clip: true
                 }
 
                 Text {
@@ -335,8 +348,8 @@ Item {
                     text: "Place your finger on the reader"
                     color: T.Config.surfaceText
                     font.family: T.Config.fontFamily
-                    font.pixelSize: T.Config.fontSizeMedium
-                    wrapMode: Text.WordWrap
+                    font.pixelSize: T.Config.fontSizeLarge
+                    wrapMode: Text.WrapAnywhere
                 }
 
                 Rectangle {
@@ -370,10 +383,10 @@ Item {
                             id: sensorGlyph
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "\uF6C2"
+                            text: ""
                             color: root.errorFlash ? T.Config.red : T.Config.accent
                             font.family: T.Config.fontFamily
-                            font.pixelSize: T.Config.barIconSize
+                            font.pixelSize: T.Config.fontSizeXLarge
                         }
 
                         Text {
@@ -386,9 +399,10 @@ Item {
                             text: "Place your finger on the reader"
                             color: T.Config.surfaceText
                             font.family: T.Config.fontFamily
-                            font.pixelSize: T.Config.fontSizeMedium
+                            font.pixelSize: T.Config.fontSizeLarge
                             verticalAlignment: Text.AlignVCenter
-                            wrapMode: Text.WordWrap
+                            wrapMode: Text.WrapAnywhere
+                            clip: true
                         }
                     }
 
@@ -409,7 +423,7 @@ Item {
                             color: root.errorFlash ? T.Config.red
                                  : passwordInput.activeFocus ? T.Config.accent : T.Config.inactive
                             font.family: T.Config.fontFamily
-                            font.pixelSize: T.Config.barIconSize
+                            font.pixelSize: T.Config.fontSizeXLarge
                         }
 
                         TextInput {
@@ -417,7 +431,7 @@ Item {
                             Layout.fillWidth: true
                             color: T.Config.surfaceText
                             font.family: T.Config.fontFamily
-                            font.pixelSize: T.Config.fontSizeMedium
+                            font.pixelSize: T.Config.fontSizeLarge
                             clip: true
                             selectionColor: T.Config.accent
                             selectedTextColor: T.Config.background
@@ -440,7 +454,7 @@ Item {
                                 text: root.errorFlash ? "Wrong password" : (root.submitted ? "Checking..." : "Enter password")
                                 color: root.errorFlash ? T.Config.red : T.Config.inactive
                                 font.family: T.Config.fontFamily
-                                font.pixelSize: T.Config.fontSizeMedium
+                                font.pixelSize: T.Config.fontSizeLarge
                                 verticalAlignment: Text.AlignVCenter
                                 horizontalAlignment: Text.AlignLeft
                             }
@@ -461,11 +475,13 @@ Item {
                     spacing: 6
 
                     Text {
+                        Layout.fillWidth: true
                         text: root.scopeLabel() + (root.currentSupplementary.length > 0 ? " · " + root.currentSupplementary : "")
                         color: root.fingerprintMode ? T.Config.accent : T.Config.inactive
                         font.family: T.Config.fontFamily
                         font.pixelSize: T.Config.fontSizeSubtext
                         elide: Text.ElideRight
+                        clip: true
                     }
 
                     Item {

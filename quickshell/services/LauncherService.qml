@@ -9,14 +9,13 @@ Singleton {
     property string query: ""
     property alias results: resultModel
 
-    readonly property string defaultProviders: "desktopapplications,windows,clipboard,calc,files,bitwarden"
+    readonly property string defaultProviders: "desktopapplications,windows,clipboard,calc,files"
     property string activeProviders: defaultProviders
     readonly property var providersByPrefix: ({
         "/": "files",
         ":": "clipboard",
         "!": "windows",
         "=": "calc",
-        "@": "bitwarden",
         "*": defaultProviders
     })
     property bool available
@@ -44,6 +43,20 @@ Singleton {
     function isMathQuery(text) {
         const t = String(text).trim();
         return /[0-9].{0,4}[+\-*/^%()]|[+\-*/^%()].{0,4}[0-9]/.test(t);
+    }
+
+    function providerAvailable(provider) {
+        return availableProviders.indexOf(provider) !== -1;
+    }
+
+    function enabledProviders(providers) {
+        return String(providers).split(",").filter(p => root.providerAvailable(p)).join(",");
+    }
+
+    function providerForPrefix(prefix) {
+        if (!(prefix in providersByPrefix)) return "";
+        const providers = providersByPrefix[prefix];
+        return prefix === "*" ? root.enabledProviders(providers) : (root.providerAvailable(providers) ? providers : "");
     }
 
     function startQuery(providers, q) {
@@ -82,10 +95,11 @@ Singleton {
         const first = raw.length > 0 ? raw[0] : "";
         let providers;
         let q;
-        if (first in providersByPrefix) {
-            providers = providersByPrefix[first];
+        const prefixedProvider = root.providerForPrefix(first);
+        if (prefixedProvider.length > 0) {
+            providers = prefixedProvider;
             q = raw.slice(1);
-        } else if (root.isMathQuery(raw)) {
+        } else if (root.providerAvailable("calc") && root.isMathQuery(raw)) {
             providers = "calc";
             q = raw.trim();
         } else {
@@ -179,8 +193,9 @@ Singleton {
         }
         stderr: StdioCollector {
             onStreamFinished: {
-                if (text.trim().length > 0) {
-                    console.log("launcher query stderr:", text.trim());
+                const err = text.trim();
+                if (err.length > 0 && err.indexOf("panic: unexpected end of JSON input") === -1) {
+                    console.log("launcher query stderr:", err);
                 }
             }
         }

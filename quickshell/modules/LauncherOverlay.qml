@@ -32,8 +32,7 @@ PanelWindow {
         "files":               { shortcut: "/",   label: "Files",        subtext: "Search and preview files" },
         "clipboard":           { shortcut: ":",   label: "Clipboard",    subtext: "Browse clipboard history" },
         "windows":             { shortcut: "!",   label: "Windows",      subtext: "Jump to open windows" },
-        "calc":                { shortcut: "=",   label: "Calculator",   subtext: "Evaluate math expressions" },
-        "bitwarden":           { shortcut: "@",   label: "Bitwarden",    subtext: "Search password vault" }
+        "calc":                { shortcut: "=",   label: "Calculator",   subtext: "Evaluate math expressions" }
     })
 
     function buildProviderMenu() {
@@ -81,6 +80,7 @@ PanelWindow {
         previewProvider = "";
         previewSubtext = "";
         _visible = true;
+        S.LauncherService.refreshProviders();
         S.LauncherService.setQuery("");
         inputField.forceActiveFocus();
         panelAnimateTimer.start();
@@ -150,12 +150,20 @@ PanelWindow {
         return "Applications";
     }
 
+    function activeProvider() {
+        if (root.showingProviders) return "";
+        const p = inputField.text.length > 0 ? inputField.text[0] : "";
+        const provider = S.LauncherService.providerForPrefix(p);
+        return provider.indexOf(",") === -1 ? provider : "";
+    }
+
     function chipActive(prefix) {
         if (root.showingProviders) return false;
-        if (S.LauncherService.isMathQuery(inputField.text)) return prefix === "=";
+        if (S.LauncherService.providerAvailable("calc") && S.LauncherService.isMathQuery(inputField.text)) return prefix === "=";
         const p = inputField.text.length > 0 ? inputField.text[0] : "";
-        if (prefix === "default") return p.length === 0 || !(p in S.LauncherService.providersByPrefix);
-        return p === prefix;
+        const provider = S.LauncherService.providerForPrefix(p);
+        if (prefix === "default") return p.length === 0 || provider.length === 0;
+        return p === prefix && S.LauncherService.providerForPrefix(prefix).length > 0;
     }
 
     function providerLabel(name, identifier) {
@@ -165,8 +173,7 @@ PanelWindow {
             "windows": "win",
             "clipboard": "clip",
             "calc": "calc",
-            "files": "file",
-            "bitwarden": "bw"
+            "files": "file"
         };
         return labels[name] || name;
     }
@@ -286,17 +293,23 @@ PanelWindow {
 
     Rectangle {
         id: panel
-        width: root.previewVisible ? 1700 : 620
+        readonly property string modeProvider: root.activeProvider()
+
+        width: modeProvider === "files" || modeProvider === "clipboard"
+            ? Math.round(root.width * (modeProvider === "files" ? 0.60 : 0.40))
+            : root.previewVisible ? 1700 : 620
         Behavior on width { enabled: root.panelAnimate; NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-        height: (root.previewProvider === "files" || root.previewProvider === "clipboard") && root.previewText.length > 0 ? 900 : 520
+        height: modeProvider === "files"
+            ? Math.round(root.height * 0.60)
+            : modeProvider === "clipboard"
+                ? Math.round(root.height * 0.40)
+                : (root.previewProvider === "files" || root.previewProvider === "clipboard") && root.previewText.length > 0 ? 900 : 520
         Behavior on height { enabled: root.panelAnimate; NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
         radius: T.Config.popupRadius
         color: T.Config.background
         border.width: 1
         border.color: T.Config.outline
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: 60
+        anchors.centerIn: parent
 
         MouseArea {
             anchors.fill: parent
@@ -640,7 +653,7 @@ PanelWindow {
         }
 
         Rectangle {
-            Layout.preferredWidth: root.previewVisible ? 1080 : 0
+            Layout.preferredWidth: root.previewVisible ? Math.round(panel.width * 0.62) : 0
             Layout.fillHeight: true
             visible: root.previewVisible
             Behavior on Layout.preferredWidth { enabled: root.panelAnimate; NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
