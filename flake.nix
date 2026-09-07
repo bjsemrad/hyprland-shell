@@ -15,7 +15,7 @@
     };
 
     elephant = {
-      url = "github:abenz1267/elephant/v2.22.0";
+      url = "github:abenz1267/elephant"; # "v2.22.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
