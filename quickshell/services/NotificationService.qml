@@ -105,6 +105,10 @@ Singleton {
             .replace(/[^a-z0-9 ]+/g, " ")
             .split(/\s+/)
             .filter(t => t.length >= 3);
+        const summaryTokens = tl
+            .replace(/[^a-z0-9 ]+/g, " ")
+            .split(/\s+/)
+            .filter(t => t.length >= 4 && ["from", "the", "for", "with", "this", "that", "your", "have"].indexOf(t) === -1);
 
         let best = toplevels[0];
         let bestScore = -Infinity;
@@ -113,6 +117,9 @@ Singleton {
             let score = t.generic ? -100 : 0;
             for (let n = 0; n < tokens.length; n++) {
                 if (t.cls.toLowerCase().indexOf(tokens[n]) !== -1) score += 30;
+            }
+            for (let n = 0; n < summaryTokens.length; n++) {
+                if (t.cls.toLowerCase().indexOf(summaryTokens[n]) !== -1) score += 15;
             }
             if (tl.length >= 3) {
                 if (tl.indexOf(t.title) !== -1 && t.title.length >= 5) score += 15;
@@ -156,12 +163,6 @@ Singleton {
         const summary = String(notification.summary || "");
         let windowClass = findBrowserWindowClass(appName, desktopEntry, summary);
         let icon = "";
-
-        console.log("[notif] appName=" + JSON.stringify(appName) +
-            " desktopEntry=" + JSON.stringify(desktopEntry) +
-            " appIcon=" + JSON.stringify(appIcon) +
-            " image=" + JSON.stringify(image) +
-            " windowClass=" + JSON.stringify(windowClass));
 
         const isBrowser = browserPrefixForAppName(`${appName} ${desktopEntry}`).length > 0;
         const hasImage = image.length > 0;
