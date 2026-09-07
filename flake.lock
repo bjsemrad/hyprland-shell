@@ -8,16 +8,16 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1775706155,
-        "narHash": "sha256-h7Rw0vlb0n0Jsk21WJPm7H+1T1bG+PEuxE5cJ2TZl8A=",
+        "lastModified": 1784217871,
+        "narHash": "sha256-frlaSpCf/e94OqO5Glp1NW96bemc+BhrKoPu+4X1FyI=",
         "owner": "abenz1267",
         "repo": "elephant",
-        "rev": "376ee71c66db38683daabd57350bf3f6f086eaf8",
+        "rev": "8e77c59ca5b7fd28c0a168535f1a1c000e6b5389",
         "type": "github"
       },
       "original": {
         "owner": "abenz1267",
-        "ref": "v2.21.0",
+        "ref": "v2.22.0",
         "repo": "elephant",
         "type": "github"
       }
