@@ -15,6 +15,7 @@ Singleton {
         ":": "clipboard",
         "!": "windows",
         "=": "calc",
+        "?": "menus:keybinds",
         "*": defaultProviders
     })
     property bool searching: false

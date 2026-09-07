@@ -187,7 +187,15 @@
             programs.elephant.debug = lib.mkDefault cfg.elephant.debug;
             programs.elephant.settings = lib.mkIf (cfg.elephant.settings != { }) cfg.elephant.settings;
             programs.elephant.providers = lib.mkIf (cfg.elephant.providers != [ ]) cfg.elephant.providers;
-            programs.elephant.provider = lib.mkIf (cfg.elephant.provider != { }) cfg.elephant.provider;
+            # Ship the keybinds menu (hypr + niri providers) with the shell
+            programs.elephant.provider = cfg.elephant.provider
+              // {
+                menus = (cfg.elephant.provider.menus or { })
+                  // {
+                    lua = (cfg.elephant.provider.menus.lua or { })
+                      // { keybinds = builtins.readFile "${self}/quickshell/menus/keybinds.lua"; };
+                  };
+              };
             programs.elephant.installService = lib.mkDefault cfg.elephant.installService;
 
             # Autostart uses the HM wrapper so -c is guaranteed

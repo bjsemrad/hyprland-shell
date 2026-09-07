@@ -32,7 +32,8 @@ PanelWindow {
         "files":               { shortcut: "/",   label: "Files",        subtext: "Search and preview files" },
         "clipboard":           { shortcut: ":",   label: "Clipboard",    subtext: "Browse clipboard history" },
         "windows":             { shortcut: "!",   label: "Windows",      subtext: "Jump to open windows" },
-        "calc":                { shortcut: "=",   label: "Calculator",   subtext: "Evaluate math expressions" }
+        "calc":                { shortcut: "=",   label: "Calculator",   subtext: "Evaluate math expressions" },
+        "menus:keybinds":      { shortcut: "?",   label: "Keybinds",     subtext: "Search active keyboard shortcuts" }
     })
 
     function buildProviderMenu() {
@@ -114,6 +115,12 @@ PanelWindow {
         function toggle(): void { root.toggle(); }
         function open(): void { root.open(); }
         function close(): void { root.close(); }
+        function openKeybinds(): void {
+            root.open();
+            inputField.text = "?";
+            S.LauncherService.setQuery("?");
+            inputField.forceActiveFocus();
+        }
     }
 
     function chooseProvider(prefix) {
@@ -170,7 +177,8 @@ PanelWindow {
             "windows": "win",
             "clipboard": "clip",
             "calc": "calc",
-            "files": "file"
+            "files": "file",
+            "menus:keybinds": "kbd"
         };
         return labels[name] || name;
     }
